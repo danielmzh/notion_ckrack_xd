@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>v6 Resumidor de Reuniones</title>
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+        #status { margin-top: 1rem; color: #666; }
+        .result-box { background: #f4f4f4; padding: 1rem; margin-top: 1rem; border-radius: 8px; }
+    </style>
+</head>
+<body>
+    <h1>Resumidor de Reuniones (DeepSeek R1)</h1>
+    
+    <button id="btnRecord">Ω - Registrar</button>
+    <button id="btnStop" disabled>Θ - Detener y Procesar</button>
+    
+    <div id="status">Esperando acción...</div>
+
+    <div id="results" style="display:none;">
+        <h3>Resumen:</h3>
+        <div id="summaryText" class="result-box"></div>
+        
+        <h3>Transcripción original:</h3>
+        <div id="transcriptionText" class="result-box" style="font-size: 0.9em; color: #555;"></div>
+    </div>
+
+    <script>
+        let mediaRecorder;
+        let audioChunks = [];
+        // IMPORTANTE: Cambia esto por la URL que te dio Ngrok
+        const API_URL = "https://br-ulises.ngrok-free.dev/procesar-reunion"; 
+
+        document.getElementById("btnRecord").onclick = async () => {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+            audioChunks = [];
+
+            mediaRecorder.ondataavailable = event => audioChunks.push(event.data);
+            
+            mediaRecorder.onstop = async () => {
+                document.getElementById("status").innerText = "Procesando... (Esto puede tardar según tu GPU)";
+                const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                const formData = new FormData();
+                formData.append("file", audioBlob, "reunion.wav");
+
+                try {
+                    const response = await fetch(API_URL, {
+                        method: "POST",
+                        headers: {
+                            "ngrok-skip-browser-warning": "true" 
+                        },
+                        body: formData
+                    });
+                    const data = await response.json();
+                    
+                    document.getElementById("status").innerText = "¡Listo!";
+                    document.getElementById("results").style.display = "block";
+                    document.getElementById("summaryText").innerText = data.summary;
+                    document.getElementById("transcriptionText").innerText = data.transcription;
+                } catch (error) {
+                    document.getElementById("status").innerText = "Error al conectar con el servidor: " + error;
+                    console.error(error);
+                }
+            };
+
+            mediaRecorder.start();
+            document.getElementById("btnRecord").disabled = true;
+            document.getElementById("btnStop").disabled = false;
+            document.getElementById("status").innerText = "Grabando...";
+        };
+
+        document.getElementById("btnStop").onclick = () => {
+            mediaRecorder.stop();
+            document.getElementById("btnRecord").disabled = false;
+            document.getElementById("btnStop").disabled = true;
+        };
+    </script>
+</body>
+</html>
