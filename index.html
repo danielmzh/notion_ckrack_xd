@@ -30,7 +30,7 @@
         let mediaRecorder;
         let audioChunks = [];
         // IMPORTANTE: Cambia esto por la URL que te dio Ngrok
-        const API_URL = "https://overpowerful-eveline-lignivorous.ngrok-free.dev"; 
+        const API_URL = "overpowerful-eveline-lignivorous.ngrok-free.dev"; 
 
         document.getElementById("btnRecord").onclick = async () => {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -80,3 +80,4 @@
 </body>
 
 </html>
+
